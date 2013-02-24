@@ -42,7 +42,7 @@ int drum_total = 0;
 int drum_average = 0;
 
 // The threshold for reading a drum hit.
-const int drum_threshold = 400;
+const int drum_threshold = 350;
 
 // The minimum time allowed between recognizing drum hits.
 // TODO: Calibrate this.
@@ -74,7 +74,7 @@ int instrument = 0;
 void setup() {
 
   // Serial connection for testing.
-  Serial.begin(115200);
+  Serial.begin(57600);
 
   // Initialize the WiiChuck.
   chuck.begin();
@@ -95,7 +95,13 @@ void setup() {
   delay(100);
   digitalWrite(resetMIDI, HIGH);
   delay(100);
-  talkMIDI(0xB0, 0x07, 120);
+  talkMIDI(0xB0, 0x07, 100);
+  
+  // Set to the MIDI controller to the drums bank.
+  talkMIDI(0xB0, 0, 0x78);
+  
+  // Set the drum instrument number.
+  talkMIDI(0xC0, 5, 0);
 }
 
 /* 
@@ -129,7 +135,7 @@ void loop() {
     talkMIDI(0xC0, 38, 0);
 
     // Play a snare sound.
-    noteOn(9, 38, 120);
+    noteOn(0, 38, 120);
 
     // Print a message to the serial socket.
     // TODO: Remove this. For testing only.
@@ -164,13 +170,13 @@ void noteOff(byte channel, byte note, byte release_velocity) {
  */
 void talkMIDI(byte cmd, byte data1, byte data2) {
   digitalWrite(ledPin, HIGH);
-  mySerial.print(byte(cmd));
-  mySerial.print(byte(data1));
+  mySerial.write(cmd);
+  mySerial.write(data1);
 
   //Some commands only have one data byte. All cmds less than 0xBn have 2 data bytes 
   //(sort of: http://253.ccarh.org/handout/midiprotocol/)
   if( (cmd & 0xF0) <= 0xB0)
-    mySerial.print(byte(data2));
+    mySerial.write(data2);
 
   digitalWrite(ledPin, LOW);
 }
