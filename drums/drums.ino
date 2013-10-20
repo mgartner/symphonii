@@ -42,11 +42,14 @@ int drum_total = 0;
 int drum_average = 0;
 
 // The threshold for reading a drum hit.
-const int drum_threshold = 350;
+const int drum_threshold = 400;
 
 // The minimum time allowed between recognizing drum hits.
 // TODO: Calibrate this.
 const long drum_interval = 100;
+
+// Set to true when the drum is down.
+boolean drum_down = false;
 
 // ===============================================================
 // MIDI
@@ -113,12 +116,14 @@ void loop() {
   // Update the Wiichuck readings.
   chuck.update();
   
+  Serial.println(chuck.readAccelY());
+  
   // Get the current time in millis.
   unsigned long current_millis = millis();
   
   // Make drum calculations.
   drum_total = drum_total - drum_readings[drum_index];
-  drum_readings[drum_index] = (chuck.readAccelY() + chuck.readAccelZ()) / 2;
+  drum_readings[drum_index] = (chuck.readAccelY());
   drum_total = drum_total + drum_readings[drum_index];
   drum_average = drum_total / num_drum_readings;
   drum_index = (drum_index + 1) % num_drum_readings;
@@ -126,7 +131,10 @@ void loop() {
   // If the drum average reading is high enough, and the time since the last
   // drum hit is more than drum_interval, then recognize this as a valid drum
   // hit.
-  if (drum_average > drum_threshold && (current_millis - previous_millis) > drum_interval) {
+  if (drum_average > drum_threshold && (current_millis - previous_millis) > drum_interval && !drum_down) {
+    
+    // Set drum_down to true.
+    drum_down = true;
 
     // Save the current time.
     previous_millis = current_millis;
@@ -142,6 +150,11 @@ void loop() {
     Serial.println("BOOM");
     Serial.println(chuck.readRoll());
     Serial.println();
+  }
+  
+  // If the drum is down and the average is above a certain threshold, set the drum as up.
+  if (drum_down && drum_average < 0) {
+    drum_down = false;
   }
 
   // TODO: check if the selected drum type has been changed.
